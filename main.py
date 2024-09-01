@@ -105,10 +105,14 @@ print(f"Elapsed time: {elapsed_time} seconds")
 
 v4out_freq = vout_freq[:,3]
 
+plt.figure()
 plt.loglog(np.abs(v4out_freq))
+plt.xlabel('f')
+plt.ylabel('|V4|')
 
 full_spectrum = np.concatenate((v4out_freq, np.conjugate(v4out_freq[::-1])))
 v4out_time = np.fft.ifft(full_spectrum)
 
+plt.figure()
 plt.plot(v4out_time)
 plt.show()
