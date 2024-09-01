@@ -3,6 +3,21 @@ import matplotlib.pyplot as plt
 import linhaTransmissao as lt
 import time
 
+def calculateFrequencyBoundaries(Z, Y, omega, l):
+    
+    evals, _ = np.linalg.eig(np.dot(Z, Y))
+    d = np.sqrt(evals)
+
+    v = omega / np.imag(np.sqrt(d))
+    v_min = np.min(v)
+
+    f_0 = v_min/(4*l) # quarter-wave resonance frequency
+    omega_0 = 2 * np.pi * f_0
+
+    omega_next = omega + 2*omega_0
+
+    return omega, omega_next
+
 # Constantes e funções
 mu0 = 4e-7*np.pi
 eps0 = 8.854e-12
@@ -19,15 +34,18 @@ eps0 = 8.854e-12
 # # Combine and sort the unique values from both arrays
 # freq = np.sort(np.union1d(flin, flog))
 
-# Tentando reproduzir os resultados do Bjorn antes da amostragem não-uniforme
-fmin = 1
-fmax = 2*10**(4)
+# Tentando reproduzir os resultados do Bjorn antes de aplicar uma amostragem não-uniforme
+fmin = 1 # Valor do paper do Bjorn
+fmax = 2*10**(4) # Valor do paper do Bjorn
 freq = np.linspace(fmin, fmax, 10000)
+
+f_boundary = 3000 # Valor do paper do Bjorn
+omega_boundary = 2*np.pi*f_boundary
 
 # para o uso da NLT
 Tmax = 25e-3
 # c = - np.log(0.001)/Tmax
-c = 0
+c = 0 # Tentando reproduzir os resultados do Bjorn antes de considerar a frequência complexa "s"
 sk = - 1j * c + 2 * np.pi * freq
 nf = len(sk)
 
@@ -57,9 +75,11 @@ start_time = time.time()
 for nm in range(nf):
     omega = sk[nm]
     
-    Z, Y = lt.cZYlt2(omega, xc, yc, 1/Rho, Rdc, r1, 0, npr, Rdcpr, rpr)
-    
+    Z, Y = lt.cZYlt2(omega, xc, yc, 1/Rho, Rdc, r1, 0, npr, Rdcpr, rpr) 
     A, B = lt.ynLT(Z, Y, compr)
+
+    # if omega >= omega_boundary: # Upper frequency band points
+    #     omega, omega_next = calculateFrequencyBoundaries(Z,Y,omega)
     
     # condicoes nos terminais da LT
     # gf = 0.0  # Placeholder value for gf, should be defined
@@ -85,15 +105,10 @@ print(f"Elapsed time: {elapsed_time} seconds")
 
 v4out_freq = vout_freq[:,3]
 
-# # Introduzindo componente DC na resp. de frequência.
-# v4out_freq = np.concatenate(([1+0j], v4out_freq))
-
 plt.loglog(np.abs(v4out_freq))
-plt.show()
 
-aux = np.concatenate((v4out_freq, np.conjugate(v4out_freq[::-1])))
-
-v4out_time = np.fft.ifft(aux)
+full_spectrum = np.concatenate((v4out_freq, np.conjugate(v4out_freq[::-1])))
+v4out_time = np.fft.ifft(full_spectrum)
 
 plt.plot(v4out_time)
 plt.show()
